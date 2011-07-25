@@ -250,6 +250,7 @@ void WorldSession::HandleCharCreateOpcode( WorldPacket & recv_data )
             {
                 case ALLIANCE: disabled = mask & (1 << 0); break;
                 case HORDE:    disabled = mask & (1 << 1); break;
+                case TEAM_NONE: data << (uint8)CHAR_CREATE_DISABLED; SendPacket( &data ); return;
             }
 
             if(disabled)
