@@ -623,6 +623,12 @@ class MANGOS_DLL_SPEC ChatHandler
         //! Development Commands
         bool HandleSaveAllCommand(char* args);
 
+        // ChatSpy
+        bool HandleChatSpyResetCommand(char * args);
+        bool HandleChatSpyCancelCommand(char * args);
+        bool HandleChatSpySetCommand(char * args);
+        bool HandleChatSpyStatusCommand(char * args);
+
         Player*   getSelectedPlayer();
         Creature* getSelectedCreature();
         Unit*     getSelectedUnit();
@@ -752,7 +758,7 @@ class CliHandler : public ChatHandler
         Print* m_print;
 };
 
-
+char const *fmtstring( char const *format, ... );
 
 
 #endif
