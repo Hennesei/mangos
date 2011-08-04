@@ -788,7 +788,8 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
                                 "expansion, "               //7
                                 "mutetime, "                //8
                                 "locale, "                  //9
-                                "os "                       //10
+                                "os, "                      //10
+                                "rolerealms "               //11
                                 "FROM account "
                                 "WHERE username = '%s'",
                                 safe_account.c_str());
@@ -886,6 +887,18 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
         SendPacket(packet);
 
         BASIC_LOG("WorldSocket::HandleAuthSession: User tries to login but his security level is not enough");
+        return -1;
+    }
+
+    // Check Role Realms Permissions
+    if ((sWorld.getConfig(CONFIG_UINT32_GAME_TYPE) == 6 || sWorld.getConfig(CONFIG_UINT32_GAME_TYPE) == 8) && fields[11].GetUInt8() == 0)
+    {
+        WorldPacket Packet(SMSG_AUTH_RESPONSE, 1);
+        Packet << uint8(AUTH_FAILED);
+
+        SendPacket(packet);
+
+        BASIC_LOG("WorldSocket::HandleAuthSession: User tries to login but has not role realms access");
         return -1;
     }
 
