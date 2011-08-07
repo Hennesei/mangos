@@ -19628,6 +19628,35 @@ void Player::RemovePetitionsAndSigns(ObjectGuid guid, uint32 type)
     CharacterDatabase.CommitTransaction();
 }
 
+void Player::NonTransactionalRemovePetitionsAndSigns(ObjectGuid guid)
+{
+    uint32 lowguid = guid.GetCounter();
+
+    QueryResult *result = NULL;
+    if (result = CharacterDatabase.PQuery("SELECT ownerguid,petitionguid FROM petition_sign WHERE playerguid = '%u'", lowguid))
+    {
+        do                                                  // this part effectively does nothing, since the deletion / modification only takes place _after_ the PetitionQuery. Though I don't know if the result remains intact if I execute the delete query beforehand.
+        {                                                   // and SendPetitionQueryOpcode reads data from the DB
+            Field *fields = result->Fetch();
+            ObjectGuid ownerguid   = ObjectGuid(HIGHGUID_PLAYER, fields[0].GetUInt32());
+            ObjectGuid petitionguid = ObjectGuid(HIGHGUID_ITEM, fields[1].GetUInt32());
+
+            // send update if charter owner in game
+            Player* owner = sObjectMgr.GetPlayer(ownerguid);
+            if (owner)
+                owner->GetSession()->SendPetitionQueryOpcode(petitionguid);
+
+        } while ( result->NextRow() );
+
+        delete result;
+
+        CharacterDatabase.PExecute("DELETE FROM petition_sign WHERE playerguid = '%u'", lowguid);
+    }
+
+    CharacterDatabase.PExecute("DELETE FROM petition WHERE ownerguid = '%u'", lowguid);
+    CharacterDatabase.PExecute("DELETE FROM petition_sign WHERE ownerguid = '%u'", lowguid);
+}
+
 void Player::LeaveAllArenaTeams(ObjectGuid guid)
 {
     uint32 lowguid = guid.GetCounter();

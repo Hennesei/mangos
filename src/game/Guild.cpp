@@ -728,6 +728,30 @@ void Guild::Disband()
     sGuildMgr.RemoveGuild(m_Id);
 }
 
+void Guild::NonTransactionalDisband()
+{
+    BroadcastEvent(GE_DISBANDED);
+
+    while (!members.empty())
+    {
+        MemberList::const_iterator itr = members.begin();
+        DelMember(ObjectGuid(HIGHGUID_PLAYER, itr->first), true);
+    }
+
+    CharacterDatabase.PExecute("DELETE FROM guild WHERE guildid = '%u'", m_Id);
+    CharacterDatabase.PExecute("DELETE FROM guild_rank WHERE guildid = '%u'", m_Id);
+    CharacterDatabase.PExecute("DELETE FROM guild_bank_tab WHERE guildid = '%u'", m_Id);
+
+    //Free bank tab used memory and delete items stored in them
+    DeleteGuildBankItems(true);
+
+    CharacterDatabase.PExecute("DELETE FROM guild_bank_item WHERE guildid = '%u'", m_Id);
+    CharacterDatabase.PExecute("DELETE FROM guild_bank_right WHERE guildid = '%u'", m_Id);
+    CharacterDatabase.PExecute("DELETE FROM guild_bank_eventlog WHERE guildid = '%u'", m_Id);
+    CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE guildid = '%u'", m_Id);
+    sGuildMgr.RemoveGuild(m_Id);
+}
+
 void Guild::Roster(WorldSession *session /*= NULL*/)
 {
                                                             // we can only guess size
