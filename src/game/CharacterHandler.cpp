@@ -1301,6 +1301,11 @@ void WorldSession::HandleCharFactionOrRaceChangeOpcode(WorldPacket& recv_data)
         Player::LeaveAllArenaTeams(guid);
         // Remove signs from petitions (also remove petitions if owner)
         Player::NonTransactionalRemovePetitionsAndSigns(guid);
+        // Destroy Guild and Arena Team Charters
+        CharacterDatabase.PExecute("DELETE FROM `item_instance` WHERE `owner_guid` = '%u' AND `data` LIKE '% 3 5863 %'", guid.GetCounter());    // Guild Charter
+        CharacterDatabase.PExecute("DELETE FROM `item_instance` WHERE `owner_guid` = '%u' AND `data` LIKE '% 3 23560 %'", guid.GetCounter());   // Arena Team Charter 2vs2
+        CharacterDatabase.PExecute("DELETE FROM `item_instance` WHERE `owner_guid` = '%u' AND `data` LIKE '% 3 23561 %'", guid.GetCounter());   // Arena Team Charter 3vs3
+        CharacterDatabase.PExecute("DELETE FROM `item_instance` WHERE `owner_guid` = '%u' AND `data` LIKE '% 3 23562 %'", guid.GetCounter());   // Arena Team Charter 4vs4
         // Reset Language (will be added automatically after faction change)
         CharacterDatabase.PExecute("DELETE FROM `character_spell` WHERE `spell` IN (668, 7340, 671, 672, 814, 29932, 17737, 816, 7341, 669, 813, 670) AND guid ='%u'", guid.GetCounter());
         // The player was uninvited already on logout so just remove from group
