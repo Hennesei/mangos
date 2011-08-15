@@ -1305,10 +1305,9 @@ bool DungeonMap::Add(Player *player)
                 GetPersistanceState()->GetMapId(), GetPersistanceState()->GetInstanceId(),
                 GetPersistanceState()->GetDifficulty(), GetPersistanceState()->GetPlayerCount(),
                 GetPersistanceState()->GetGroupCount(), GetPersistanceState()->CanReset());
-            sLog.outError("Kicking Player %s(%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
+            sLog.outError("Player %s (%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
             player->RemoveFromGroup();
             player->RepopAtGraveyard();
-            player->GetSession()->KickPlayer();
             return false;
         }
     }
@@ -1359,10 +1358,9 @@ bool DungeonMap::Add(Player *player)
                         sLog.outError("GroupBind save players: %d, group count: %d", groupBind->state->GetPlayerCount(), groupBind->state->GetGroupCount());
                     else
                         sLog.outError("GroupBind save NULL");
-                    sLog.outError("Kicking Player %s(%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
+                    sLog.outError("Player %s (%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
                     player->RemoveFromGroup();
                     player->RepopAtGraveyard();
-                    player->GetSession()->KickPlayer();
                     return false;
                 }
                 // if the group/leader is permanently bound to the instance
@@ -1386,10 +1384,9 @@ bool DungeonMap::Add(Player *player)
             else
             {
                 // cannot jump to a different instance without resetting it
-                sLog.outError("Kicking Player %s(%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
+                sLog.outError("Player %s (%d), removing from group and repop at graveyard to avoid crash", player->GetName(), player->GetGUIDLow());
                 player->RemoveFromGroup();
                 player->RepopAtGraveyard();
-                player->GetSession()->KickPlayer();
                 return false;
             }
         }
