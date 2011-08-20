@@ -9436,7 +9436,10 @@ bool Unit::SelectHostileTarget()
                     m_HostileRefManager.deleteReference(target);
                     m_ThreatManager.modifyThreatPercent(target, -101);
                     
-                    _removeAttacker(target);
+                    if (!GetMap())
+                        return false;
+
+                    GetMap()->RemoveAttackerFor(GetObjectGuid(), target->GetObjectGuid());
                 }
 
                 return false;
