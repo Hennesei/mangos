@@ -702,7 +702,7 @@ void Guild::SetRankRights(uint32 rankId, uint32 rights)
  *
  * Note: guild object need deleted after this in caller code.
  */
-void Guild::Disband()
+void Guild::Disband(bool transactionalOp)
 {
     BroadcastEvent(GE_DISBANDED);
 
@@ -712,7 +712,9 @@ void Guild::Disband()
         DelMember(ObjectGuid(HIGHGUID_PLAYER, itr->first), true);
     }
 
-    CharacterDatabase.BeginTransaction();
+    if (transactionalOp)
+        CharacterDatabase.BeginTransaction();
+
     CharacterDatabase.PExecute("DELETE FROM guild WHERE guildid = '%u'", m_Id);
     CharacterDatabase.PExecute("DELETE FROM guild_rank WHERE guildid = '%u'", m_Id);
     CharacterDatabase.PExecute("DELETE FROM guild_bank_tab WHERE guildid = '%u'", m_Id);
@@ -724,7 +726,10 @@ void Guild::Disband()
     CharacterDatabase.PExecute("DELETE FROM guild_bank_right WHERE guildid = '%u'", m_Id);
     CharacterDatabase.PExecute("DELETE FROM guild_bank_eventlog WHERE guildid = '%u'", m_Id);
     CharacterDatabase.PExecute("DELETE FROM guild_eventlog WHERE guildid = '%u'", m_Id);
-    CharacterDatabase.CommitTransaction();
+
+    if (transactionalOp)
+        CharacterDatabase.CommitTransaction();
+
     sGuildMgr.RemoveGuild(m_Id);
 }
 
