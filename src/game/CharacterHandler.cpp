@@ -1273,7 +1273,7 @@ void WorldSession::HandleCharFactionOrRaceChangeOpcode(WorldPacket& recv_data)
             if (Guild* guild = sGuildMgr.GetGuildById(guildId))
                 if (guild->DelMember(guid))
                 {
-                    guild->NonTransactionalDisband();
+                    guild->Disband();
                     delete guild;
                 }
         // Delete Friend List
@@ -1300,7 +1300,28 @@ void WorldSession::HandleCharFactionOrRaceChangeOpcode(WorldPacket& recv_data)
         // Leave Arena Teams
         Player::LeaveAllArenaTeams(guid);
         // Remove signs from petitions (also remove petitions if owner)
-        Player::NonTransactionalRemovePetitionsAndSigns(guid);
+        // NOTE: This is the same as call Player::RemovePetitionsAndSigns(guid, 10); but this can't be called in a Transaction because it initialize another one!!
+        if (QueryResult *result = CharacterDatabase.PQuery("SELECT ownerguid,petitionguid FROM petition_sign WHERE playerguid = '%u'", guid.GetCounter()))
+        {
+            do // this part effectively does nothing, since the deletion / modification only takes place _after_ the PetitionQuery. Though I don't know if the result remains intact if I execute the delete query beforehand.
+            { // and SendPetitionQueryOpcode reads data from the DB
+                Field *fields = result->Fetch();
+                ObjectGuid ownerguid = ObjectGuid(HIGHGUID_PLAYER, fields[0].GetUInt32());
+                ObjectGuid petitionguid = ObjectGuid(HIGHGUID_ITEM, fields[1].GetUInt32());
+
+                // send update if charter owner in game
+                Player* owner = sObjectMgr.GetPlayer(ownerguid);
+                if (owner)
+                    owner->GetSession()->SendPetitionQueryOpcode(petitionguid);
+            }
+            while (result->NextRow());
+
+            delete result;
+
+            CharacterDatabase.PExecute("DELETE FROM petition_sign WHERE playerguid = '%u'", guid.GetCounter());
+        }
+        CharacterDatabase.PExecute("DELETE FROM petition WHERE ownerguid = '%u'", guid.GetCounter());
+        CharacterDatabase.PExecute("DELETE FROM petition_sign WHERE ownerguid = '%u'", guid.GetCounter());
         // Reset Language (will be added automatically after faction change)
         CharacterDatabase.PExecute("DELETE FROM `character_spell` WHERE `spell` IN (668, 7340, 671, 672, 814, 29932, 17737, 816, 7341, 669, 813, 670) AND guid ='%u'", guid.GetCounter());
         // The player was uninvited already on logout so just remove from group

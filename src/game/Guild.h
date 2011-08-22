@@ -303,7 +303,6 @@ class Guild
         bool Create(Player* leader, std::string gname);
         void CreateDefaultGuildRanks(int locale_idx);
         void Disband();
-        void NonTransactionalDisband();
 
         void DeleteGuildBankItems(bool alsoInDB = false);
         typedef UNORDERED_MAP<uint32, MemberSlot> MemberList;
