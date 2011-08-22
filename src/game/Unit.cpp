@@ -2883,7 +2883,7 @@ MeleeHitOutcome Unit::RollMeleeOutcomeAgainst (const Unit *pVictim, WeaponAttack
         int32 maxskill = attackerMaxSkillValueForLevel;
         skill = (skill > maxskill) ? maxskill : skill;
 
-        tmp = (10 + (victimDefenseSkill - skill)) * 100;
+        tmp = (10 + 2*(victimDefenseSkill - skill)) * 100;
         tmp = tmp > 4000 ? 4000 : tmp;
         if (roll < (sum += tmp))
         {
@@ -10220,7 +10220,8 @@ void Unit::CleanupsBeforeDelete()
             RemoveVehicleKit();
         InterruptNonMeleeSpells(true);
         m_Events.KillAllEvents(false);                      // non-delatable (currently casted spells) will not deleted now but it will deleted at call in Map::RemoveAllObjectsInRemoveList
-        CombatStop();
+        if (IsInWorld())
+            CombatStop();
         ClearComboPointHolders();
         DeleteThreatList();
         if (GetTypeId()==TYPEID_PLAYER)
