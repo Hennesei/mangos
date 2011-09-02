@@ -3438,6 +3438,8 @@ void Spell::cast(bool skipCheck)
                 AddTriggeredSpell(74800);                  // Soul consumption
             else if (m_spellInfo->Id == 61968)             // Flash Freeze (Hodir: Ulduar)
                 AddTriggeredSpell(62148);                  // visual effect
+            else if (m_spellInfo->Id == 58672)             // Impale, damage and loose threat effect (Vault of Archavon, Archavon the Stone Watcher)
+                AddPrecastSpell(m_caster->GetMap()->IsRegularDifficulty() ? 58666 : 60882);
             break;
         }
         case SPELLFAMILY_MAGE:
@@ -5131,8 +5133,10 @@ SpellCastResult Spell::CheckCast(bool strict)
             return m_caster->getClass() == CLASS_WARRIOR ? SPELL_FAILED_CASTER_AURASTATE : SPELL_FAILED_NO_COMBO_POINTS;
     }
 
-    if (Unit *target = m_targets.getUnitTarget())
+    Unit *target = m_targets.getUnitTarget();
+    if (target && target->IsInWorld() && target->GetMap())
     {
+        MAPLOCK_READ(target,MAP_LOCK_TYPE_AURAS);
         // target state requirements (not allowed state), apply to self also
         // This check not need - checked in CheckTarget()
         // if (m_spellInfo->TargetAuraStateNot && target->HasAuraState(AuraState(m_spellInfo->TargetAuraStateNot)))
@@ -5367,6 +5371,9 @@ SpellCastResult Spell::CheckCast(bool strict)
             return SPELL_FAILED_TARGET_AFFECTING_COMBAT;
     }
     // zone check
+    if (!m_caster->GetMap() || !m_caster->GetTerrain())
+        return SPELL_FAILED_DONT_REPORT;
+
     uint32 zone, area;
     m_caster->GetZoneAndAreaId(zone, area);
 
