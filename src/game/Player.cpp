@@ -18259,6 +18259,8 @@ void Player::_SaveAuras()
     static SqlStatementID deleteAuras ;
     static SqlStatementID insertAuras ;
 
+    MAPLOCK_READ(this,MAP_LOCK_TYPE_AURAS);
+
     SqlStatement stmt = CharacterDatabase.CreateStatement(deleteAuras, "DELETE FROM character_aura WHERE guid = ?");
     stmt.PExecute(GetGUIDLow());
 
