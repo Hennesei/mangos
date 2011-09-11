@@ -4303,13 +4303,11 @@ float Unit::CheckAuraStackingAndApply(Aura *Aur, UnitMods unitMod, UnitModifierT
         // need a sanity check here?
 
         // special case: minor and major categories for armor reduction debuffs
-        // TODO: find some better way of dividing to ategories
+        // TODO: find some better way of dividing to categories
         if (Aur->GetModifier()->m_auraname == SPELL_AURA_MOD_RESISTANCE_PCT &&
             (Aur->GetId() == 770 ||                                              // Faerie Fire
-            spellProto->SpellFamilyName == SPELLFAMILY_HUNTER &&                // Sting (Hunter Pet)
-            spellProto->SpellFamilyFlags & UI64LIT(0x1000000000000000) ||
-            spellProto->SpellFamilyName == SPELLFAMILY_WARLOCK &&               // Curse of Weakness
-            spellProto->SpellFamilyFlags & UI64LIT(0x0000000000008000)))
+            spellProto->IsFitToFamily<SPELLFAMILY_HUNTER, CF_HUNTER_PET_SPELLS>() ||            // Sting (Hunter Pet)
+            spellProto->IsFitToFamily<SPELLFAMILY_WARLOCK, CF_WARLOCK_CURSE_OF_WEAKNESS>()))    // Curse of Weakness
         {
             modifierType = NONSTACKING_PCT_MINOR;
         }
@@ -5265,7 +5263,7 @@ void Unit::RemoveArenaAuras(bool onleave)
                                                             // don't remove stances, shadowform, pally/hunter auras
             !iter->second->IsPassive() &&                   // don't remove passive auras
             (!(iter->second->GetSpellProto()->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY) ||
-            !(iter->second->GetSpellProto()->Attributes & SPELL_ATTR_UNK8)) &&
+            !(iter->second->GetSpellProto()->Attributes & SPELL_ATTR_HIDE_IN_COMBAT_LOG)) &&
                                                             // not unaffected by invulnerability auras or not having that unknown flag (that seemed the most probable)
             (iter->second->IsPositive() != onleave))        // remove positive buffs on enter, negative buffs on leave
         {
@@ -9751,6 +9749,22 @@ void Unit::ApplyDiminishingToDuration(DiminishingGroup group, int32 &duration,Un
             case DIMINISHING_LEVEL_1: break;
             case DIMINISHING_LEVEL_2: mod = 0.5f; break;
             case DIMINISHING_LEVEL_3: mod = 0.25f; break;
+            case DIMINISHING_LEVEL_4:
+            case DIMINISHING_LEVEL_5:
+            case DIMINISHING_LEVEL_IMMUNE: mod = 0.0f;break;
+            default: break;
+        }
+    }
+    else if (GetTypeId() == TYPEID_UNIT && (((Creature*)this)->GetCreatureInfo()->flags_extra &  CREATURE_FLAG_EXTRA_TAUNT_DIMINISHING) && GetDiminishingReturnsGroupType(group) == DRTYPE_TAUNT)
+    {
+        DiminishingLevels diminish = Level;
+        switch(diminish)
+        {
+            case DIMINISHING_LEVEL_1: break;
+            case DIMINISHING_LEVEL_2: mod = 0.65f;   break;
+            case DIMINISHING_LEVEL_3: mod = 0.4225f; break;
+            case DIMINISHING_LEVEL_4: mod = 0.2747f; break;
+            case DIMINISHING_LEVEL_5: mod = 0.1785f; break;
             case DIMINISHING_LEVEL_IMMUNE: mod = 0.0f;break;
             default: break;
         }
