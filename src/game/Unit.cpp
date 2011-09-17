@@ -1525,7 +1525,7 @@ void Unit::DealSpellDamage(SpellNonMeleeDamage *damageInfo, bool durabilityLoss)
     CleanDamage cleanDamage(0, damageInfo->absorb, BASE_ATTACK, damageInfo->HitInfo & SPELL_HIT_TYPE_CRIT ? MELEE_HIT_CRIT : MELEE_HIT_NORMAL);
     DealDamage(pVictim, damageInfo->damage, &cleanDamage, SPELL_DIRECT_DAMAGE, damageInfo->schoolMask, spellProto, durabilityLoss);
     // Check if effect can trigger anything actually (is this a right ATTR ?)
-    if ( spellProto->AttributesEx3 & SPELL_ATTR_EX3_UNK16 )
+    if ( spellProto->AttributesEx3 & SPELL_ATTR_EX3_CANT_TRIGGER_PROC)
         return;
 
     bool hasWeaponDmgEffect = false;
@@ -5266,6 +5266,56 @@ void Unit::RemoveArenaAuras(bool onleave)
         else
             ++iter;
     }
+}
+
+void Unit::HandleArenaPreparation(bool apply)
+{
+    ApplyModFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PREPARATION, apply);
+
+    if (apply)
+    {
+        // max regen powers at start preparation
+        SetHealth(GetMaxHealth());
+        SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
+        SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
+    }
+    else
+    {
+        // reset originally 0 powers at start/leave
+        SetPower(POWER_RAGE, 0);
+        SetPower(POWER_RUNIC_POWER, 0);
+        SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
+        SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
+
+        // Remove all buffs with duration < 25 sec.
+        for(SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
+        {
+            if (!(iter->second->GetSpellProto()->AttributesEx4 & SPELL_ATTR_EX4_UNK21) &&
+                                                            // don't remove stances, shadowform, pally/hunter auras
+            !iter->second->IsPassive() &&                   // don't remove passive auras
+            iter->second->GetAuraMaxDuration() > 0 &&
+            iter->second->GetAuraMaxDuration() <= 25000)
+            {
+                RemoveSpellAuraHolder(iter->second, AURA_REMOVE_BY_CANCEL);
+                iter = m_spellAuraHolders.begin();
+            }
+            else
+                ++iter;
+        }
+    }
+
+    if (GetObjectGuid().IsPet())
+    {
+        Pet* pet = ((Pet*)this);
+        if (pet)
+        {
+            Unit* owner = pet->GetOwner();
+            if (owner && (owner->GetTypeId() == TYPEID_PLAYER) && ((Player*)owner)->GetGroup())
+                ((Player*)owner)->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_AURAS);
+        }
+    }
+    else
+        CallForAllControlledUnits(ApplyArenaPreparationWithHelper(apply),CONTROLLED_PET|CONTROLLED_GUARDIANS);
 }
 
 void Unit::RemoveAllAurasOnDeath()

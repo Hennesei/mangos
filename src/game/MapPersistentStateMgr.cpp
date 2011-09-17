@@ -351,6 +351,29 @@ void DungeonPersistentState::UpdateEncounterState(EncounterCreditType type, uint
     }
 }
 
+time_t DungeonPersistentState::GetResetTimeForDB() const
+{
+    // only state the reset time for normal instances
+    const MapEntry *entry = sMapStore.LookupEntry(GetMapId());
+    if(!entry || entry->map_type == MAP_RAID || GetDifficulty() == DUNGEON_DIFFICULTY_HEROIC)
+        return 0;
+    else
+        return GetResetTime();
+}
+
+time_t DungeonPersistentState::GetRealResetTime() const
+{
+    if (GetResetTime())
+        return GetResetTime();
+
+    MapDifficultyEntry const* mapDiff = GetMapDifficultyData(GetMapId(),GetDifficulty());
+
+    if(!mapDiff)
+        return 0;
+
+    return DungeonResetScheduler::CalculateNextResetTime(mapDiff, time(NULL));
+}
+
 //== BattleGroundPersistentState functions =================
 
 bool BattleGroundPersistentState::CanBeUnload() const
@@ -680,7 +703,7 @@ MapPersistentState* MapPersistentStateManager::AddPersistentState(MapEntry const
     DEBUG_LOG("MapPersistentStateManager::AddPersistentState: mapid = %d, instanceid = %d, reset time = %u, canReset = %u", mapEntry->MapID, instanceId, resetTime, canReset ? 1 : 0);
 
     MapPersistentState *state;
-    if (mapEntry->IsDungeon())
+    if (mapEntry->IsDungeon() && instanceId)
     {
         DungeonPersistentState* dungeonState = new DungeonPersistentState(mapEntry->MapID, instanceId, difficulty, completedEncountersMask, resetTime, canReset);
         if (!load)
@@ -689,16 +712,21 @@ MapPersistentState* MapPersistentStateManager::AddPersistentState(MapEntry const
     }
     else if (mapEntry->IsBattleGroundOrArena())
         state = new BattleGroundPersistentState(mapEntry->MapID, instanceId, difficulty);
-    else
+    else if (!instanceId)
         state = new WorldPersistentState(mapEntry->MapID);
-
-
-    if (instanceId)
-        m_instanceSaveByInstanceId[instanceId] = state;
     else
+    {
+        sLog.outError("MapPersistentStateManager::AddPersistentState cannot create persistent state for mapid = %d, instanceid = %d, reset time = %u, canReset = %u", mapEntry->MapID, instanceId, resetTime, canReset ? 1 : 0);
+        return state;
+    }
+
+
+    if (state && instanceId)
+        m_instanceSaveByInstanceId[instanceId] = state;
+    else if (state && !instanceId)
         m_instanceSaveByMapId[mapEntry->MapID] = state;
 
-    if (initPools)
+    if (state && initPools)
         state->InitPools();
 
     return state;
