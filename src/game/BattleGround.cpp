@@ -1418,17 +1418,8 @@ void BattleGround::AddPlayer(Player *plr)
         plr->CastSpell(plr, SPELL_BATTLEGROUND_DAMPENING, true);
     }
 
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_BG, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DAMAGE_DONE, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL_AT_AREA, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
     plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HEALING_DONE, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GET_KILLING_BLOWS, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_SPECIAL_PVP_KILL, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
-    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL, ACHIEVEMENT_CRITERIA_CONDITION_MAP,GetMapId());
+    plr->GetAchievementMgr().ResetAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_DAMAGE_DONE, ACHIEVEMENT_CRITERIA_CONDITION_MAP, GetMapId());
 
     // setup BG group membership
     PlayerAddedToBGCheckIfBGIsRunning(plr);
@@ -1959,9 +1950,6 @@ void BattleGround::HandleKillPlayer( Player *player, Player *killer )
     // add +1 kills to group and +1 killing_blows to killer
     if (killer)
     {
-        killer->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL);
-        killer->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_GET_KILLING_BLOWS);
-
         UpdatePlayerScore(killer, SCORE_HONORABLE_KILLS, 1);
         UpdatePlayerScore(killer, SCORE_KILLING_BLOWS, 1);
 
@@ -1973,10 +1961,7 @@ void BattleGround::HandleKillPlayer( Player *player, Player *killer )
                 continue;
 
             if (plr->GetTeam() == killer->GetTeam() && plr->IsAtGroupRewardDistance(player))
-            {
                 UpdatePlayerScore(plr, SCORE_HONORABLE_KILLS, 1);
-                plr->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HONORABLE_KILL);
-            }
         }
     }
 
