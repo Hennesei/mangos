@@ -4396,12 +4396,13 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolderPtr holder)
         return false;
     }
 
+    std::set<SpellAuraHolderPtr> holdersToRemove;
+    SpellAuraHolderPtr holderToStackAdd;
     // passive and persistent auras can stack with themselves any number of times
     if ((!holder->IsPassive() && !holder->IsPersistent()) || holder->IsAreaAura())
     {
-        SpellAuraHolderMap tmpMap = GetSpellAuraHolderMap();
-        SpellAuraHolderBounds spair = tmpMap.equal_range(aurSpellInfo->Id);
-
+        MAPLOCK_READ(this,MAP_LOCK_TYPE_AURAS);
+        SpellAuraHolderBounds spair = GetSpellAuraHolderBounds(aurSpellInfo->Id);
         // take out same spell
         for (SpellAuraHolderMap::iterator iter = spair.first; iter != spair.second; ++iter)
         {
@@ -4413,10 +4414,8 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolderPtr holder)
                 // Aura can stack on self -> Stack it;
                 if (aurSpellInfo->StackAmount)
                 {
-                    // can be created with >1 stack by some spell mods
-                    foundHolder->ModStackAmount(holder->GetStackAmount());
-                    foundHolder->HandleSpellSpecificBoostsForward(true);
-                    return false;
+                    holderToStackAdd = foundHolder;
+                    break;
                 }
 
                 // Check for coexisting Weapon-proced Auras
@@ -4453,7 +4452,7 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolderPtr holder)
                 // only one holder per caster on same target
                 if (foundHolder->GetCasterGuid() == holder->GetCasterGuid())
                 {
-                    RemoveSpellAuraHolder(foundHolder, AURA_REMOVE_BY_STACK);
+                    holdersToRemove.insert(foundHolder);
                     break;
                 }
             }
@@ -4461,8 +4460,21 @@ bool Unit::AddSpellAuraHolder(SpellAuraHolderPtr holder)
             // stacking of holders from different casters
             // some holders stack, but their auras dont (i.e. only strongest aura effect works)
             if (!sSpellMgr.IsStackableSpellAuraHolder(aurSpellInfo))
-                RemoveSpellAuraHolder(foundHolder,AURA_REMOVE_BY_STACK);
+                holdersToRemove.insert(foundHolder);
         }
+    }
+
+    if (!holdersToRemove.empty())
+    {
+        for(std::set<SpellAuraHolderPtr>::const_iterator i = holdersToRemove.begin(); i != holdersToRemove.end(); ++i)
+            RemoveSpellAuraHolder((*i),AURA_REMOVE_BY_STACK);
+    }
+    else if (holderToStackAdd)
+    {
+        // can be created with >1 stack by some spell mods
+        holderToStackAdd->ModStackAmount(holder->GetStackAmount());
+        holderToStackAdd->HandleSpellSpecificBoostsForward(true);
+        return false;
     }
 
     // passive auras not stackable with other ranks
@@ -5045,21 +5057,22 @@ void Unit::RemoveAurasDueToItemSpell(Item* castItem,uint32 spellId)
 
 void Unit::RemoveAurasWithInterruptFlags(uint32 flags)
 {
-    std::set<SpellAuraHolderPtr> holdersToRemove;
+    std::set<uint32> spellsToRemove;
     {
         MAPLOCK_READ(this,MAP_LOCK_TYPE_AURAS);
-        for (SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end(); ++iter)
+        SpellAuraHolderMap const& holdersMap = GetSpellAuraHolderMap();
+        for (SpellAuraHolderMap::const_iterator iter = holdersMap.begin(); iter != holdersMap.end(); ++iter)
         {
             SpellAuraHolderPtr holder = iter->second;
-            if (holder && !holder->IsDeleted() &&  holder->GetSpellProto()->AuraInterruptFlags & flags)
-                holdersToRemove.insert(holder);
+            if (holder && !holder->IsDeleted() && (holder->GetSpellProto()->AuraInterruptFlags & flags))
+                spellsToRemove.insert(iter->first);
         }
     }
 
-    if (!holdersToRemove.empty())
+    if (!spellsToRemove.empty())
     {
-        for(std::set<SpellAuraHolderPtr>::const_iterator i = holdersToRemove.begin(); i != holdersToRemove.end(); ++i)
-            RemoveSpellAuraHolder((*i));
+        for(std::set<uint32>::const_iterator i = spellsToRemove.begin(); i != spellsToRemove.end(); ++i)
+            RemoveAurasDueToSpell(*i);
     }
 }
 
@@ -5311,14 +5324,16 @@ void Unit::HandleArenaPreparation(bool apply)
         SetPower(POWER_MANA, GetMaxPower(POWER_MANA));
         SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
 
-        // Remove all buffs with duration < 25 sec.
+        // Remove all buffs with duration < 25 sec (actually depends on config value)
+        // and auras, which have SPELL_ATTR_EX5_REMOVE_AT_ENTER_ARENA (former SPELL_ATTR_EX5_UNK2 = 0x00000004).
         for(SpellAuraHolderMap::iterator iter = m_spellAuraHolders.begin(); iter != m_spellAuraHolders.end();)
         {
-            if (!(iter->second->GetSpellProto()->AttributesEx4 & SPELL_ATTR_EX4_UNK21) &&
+            if ((!(iter->second->GetSpellProto()->AttributesEx4 & SPELL_ATTR_EX4_UNK21) &&
                                                             // don't remove stances, shadowform, pally/hunter auras
             !iter->second->IsPassive() &&                   // don't remove passive auras
-            iter->second->GetAuraMaxDuration() > 0 &&
-            iter->second->GetAuraDuration() <= sWorld.getConfig(CONFIG_UINT32_ARENA_AURAS_DURATION)*IN_MILLISECONDS)
+            ((iter->second->GetAuraMaxDuration() > 0 &&
+            iter->second->GetAuraDuration() <= sWorld.getConfig(CONFIG_UINT32_ARENA_AURAS_DURATION)*IN_MILLISECONDS)) ||
+            iter->second->GetSpellProto()->AttributesEx5 & SPELL_ATTR_EX5_REMOVE_AT_ENTER_ARENA))
             {
                 RemoveSpellAuraHolder(iter->second, AURA_REMOVE_BY_CANCEL);
                 iter = m_spellAuraHolders.begin();
@@ -6300,9 +6315,20 @@ bool Unit::Attack(Unit *victim, bool meleeAttack)
 
 void Unit::AttackedBy(Unit *attacker)
 {
+    if (IsFriendlyTo(attacker) || attacker->IsFriendlyTo(this))
+        return;
+
     // trigger AI reaction
     if (GetTypeId() == TYPEID_UNIT && ((Creature*)this)->AI())
+    {
         ((Creature*)this)->AI()->AttackedBy(attacker);
+        if (!isInCombat())
+        {
+            AddThreat(attacker);
+            SetInCombatWith(attacker);
+            attacker->SetInCombatWith(this);
+        }
+    }
 
     // trigger pet AI reaction
     if (attacker->IsHostileTo(this))
@@ -11347,8 +11373,15 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
     {
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
-        StopMoving();
         GetMotionMaster()->MovementExpired(false);
+
+        if (GetTypeId() == TYPEID_PLAYER)
+        {
+            //Clear unit movement flags
+            ((Player*)this)->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
+        }
+        else
+            StopMoving();
 
         if (GetTypeId() != TYPEID_PLAYER && isAlive())
         {
@@ -12139,6 +12172,7 @@ void Unit::KnockBackPlayerWithAngle(float angle, float horizontalSpeed, float ve
     // Effect propertly implemented only for players
     if (GetTypeId()==TYPEID_PLAYER)
     {
+        ((Player*)this)->GetAntiCheat()->SetImmune(2 * verticalSpeed / Movement::gravity);
         WorldPacket data(SMSG_MOVE_KNOCK_BACK, 9+4+4+4+4+4);
         data << GetPackGUID();
         data << uint32(0);                                  // Sequence
