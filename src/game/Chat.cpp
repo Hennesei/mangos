@@ -850,6 +850,7 @@ ChatCommand * ChatHandler::getCommandTable()
         //Playerbot mod
         { "bot",            SEC_PLAYER,         false, &ChatHandler::HandlePlayerbotCommand,           "", NULL },
         { "quit",           SEC_CONSOLE,        true,  &ChatHandler::HandleQuitCommand,                "", NULL },
+        { "gearscore",      SEC_ADMINISTRATOR,  false, &ChatHandler::HandleShowGearScoreCommand,       "", NULL },
         { "chatspy",        SEC_ADMINISTRATOR,  true,  NULL,                                           "", chatspyCommandTable },
         { "mmap",           SEC_GAMEMASTER,     false, NULL,                                           "", mmapCommandTable },
         { NULL,             0,                  false, NULL,                                           "", NULL }

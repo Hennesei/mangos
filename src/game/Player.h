@@ -1343,6 +1343,10 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         uint32 m_stableSlots;
 
+        uint32 GetEquipGearScore(bool withBags = true, bool withBank = false);
+        void ResetCachedGearScore() { m_cachedGS = 0; }
+        typedef std::vector<uint32/*item level*/> GearScoreVec;
+
         /*********************************************************/
         /***                    GOSSIP SYSTEM                  ***/
         /*********************************************************/
@@ -2351,9 +2355,6 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         // LFG
         LFGPlayerState* GetLFGState() { return m_LFGState;};
-        uint32 GetEquipGearScore(bool withBags = true, bool withBank = false);
-        void   ResetEquipGearScore() { m_cachedGS = 0;};
-        typedef std::vector<uint32/*item level*/> GearScoreMap;
         uint8 GetTalentsCount(uint8 tab);
         void  ResetTalentsCount() { m_cachedTC[0] = 0; m_cachedTC[1] = 0; m_cachedTC[2] = 0;};
 
@@ -2713,6 +2714,8 @@ class MANGOS_DLL_SPEC Player : public Unit
                 m_DelayedOperations |= operation;
         }
 
+        void _fillGearScoreData(Item* item, GearScoreVec* gearScore, uint32& twoHandScore);
+
         Unit *m_mover;
         Camera m_camera;
 
@@ -2765,12 +2768,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         DungeonPersistentState* _pendingBind;
         uint32 _pendingBindTimer;
 
-        uint32 m_cachedGS;
         uint8  m_cachedTC[3];
 
         // LFG
         LFGPlayerState* m_LFGState;
-        void _fillGearScoreData(Item* item, GearScoreMap* gearScore);
+
+        uint32 m_cachedGS;
 };
 
 void AddItemsSetItem(Player*player,Item *item);
