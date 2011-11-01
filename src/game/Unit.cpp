@@ -841,10 +841,6 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
             {
                 // FIXME: kept by compatibility. don't know in BG if the restriction apply.
                 bg->UpdatePlayerScore(killer, SCORE_DAMAGE_DONE, damage);
-                /** World of Warcraft Armory **/
-                if (BattleGround *bgV = ((Player*)pVictim)->GetBattleGround())
-                    bgV->UpdatePlayerScore(((Player*)pVictim), SCORE_DAMAGE_TAKEN, damage);
-                /** World of Warcraft Armory **/
             }
         }
 
@@ -1050,13 +1046,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
                     if (m->IsRaidOrHeroicDungeon())
                     {
                         if (cVictim->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_INSTANCE_BIND)
-                        {
                             ((DungeonMap *)m)->PermBindAllPlayers(creditedPlayer);
-                            /** World of Warcraft Armory **/
-                            if (sWorld.getConfig(CONFIG_BOOL_ARMORY_SUPPORT))
-                                creditedPlayer->WriteWowArmoryDatabaseLog(3, cVictim->GetCreatureInfo()->Entry); // Difficulty will be defined in Player::WriteWowArmoryDatabaseLog();
-                            /** World of Warcraft Armory **/
-                        }
                     }
                     else
                     {
@@ -5140,7 +5130,10 @@ void Unit::RemoveAurasWithInterruptFlags(uint32 flags)
         for (SpellAuraHolderMap::const_iterator iter = holdersMap.begin(); iter != holdersMap.end(); ++iter)
         {
             SpellAuraHolderPtr holder = iter->second;
-            if (holder && !holder->IsDeleted() && (holder->GetSpellProto()->AuraInterruptFlags & flags))
+            if (!holder || holder->IsDeleted() || !holder->GetSpellProto())
+                continue;
+
+            if (holder->GetSpellProto()->AuraInterruptFlags & flags)
                 spellsToRemove.insert(iter->first);
         }
     }
@@ -6882,10 +6875,6 @@ int32 Unit::DealHeal(Unit *pVictim, uint32 addhealth, SpellEntry const *spellPro
     {
         ((Player*)pVictim)->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_TOTAL_HEALING_RECEIVED, gain);
         ((Player*)pVictim)->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_HIGHEST_HEALING_RECEIVED, addhealth);
-        /** World of Warcraft Armory **/
-        if (BattleGround *bgV = ((Player*)pVictim)->GetBattleGround())
-            bgV->UpdatePlayerScore(((Player*)pVictim), SCORE_HEALING_TAKEN, gain);
-        /** World of Warcraft Armory **/
     }
 
     return gain;
@@ -11885,10 +11874,17 @@ float Unit::GetAPMultiplier(WeaponAttackType attType, bool normalized)
 
 Aura* Unit::GetDummyAura( uint32 spell_id ) const
 {
+    MAPLOCK_READ(const_cast<Unit*>(this),MAP_LOCK_TYPE_AURAS);
     Unit::AuraList const& mDummy = GetAurasByType(SPELL_AURA_DUMMY);
-    for(Unit::AuraList::const_iterator itr = mDummy.begin(); itr != mDummy.end(); ++itr)
-        if ((*itr)->GetId() == spell_id)
+    for (Unit::AuraList::const_iterator itr = mDummy.begin(); itr != mDummy.end(); ++itr)
+    {
+        SpellAuraHolderPtr holder = (*itr)->GetHolder();
+        if (!holder || holder->IsDeleted())
+            continue;
+
+        if (holder->GetId() == spell_id)
             return *itr;
+    }
 
     return NULL;
 }
