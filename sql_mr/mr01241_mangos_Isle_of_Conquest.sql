@@ -1,34 +1,34 @@
-﻿-- Isle of Conquest
+-- Isle of Conquest
 -- use these 2 queries only if you want to enable IoC by direct queueing it
 -- DELETE FROM battleground_template WHERE id = 30;
 -- INSERT INTO battleground_template (id, MinPlayersPerTeam, MaxPlayersPerTeam, AllianceStartLoc, AllianceStartO, HordeStartLoc, HordeStartO) VALUES
 -- (30, 10, 40, 1485, 0, 1486, 3.14159);
 
-DELETE FROM mangos_string WHERE entry > 20079 AND entry < 20103;
-INSERT INTO mangos_string (entry, content_default) VALUES
-(20080, 'The battle will begin in 2 minutes.'),
-(20081, 'The battle will begin in 1 minute.'),
-(20082, 'The battle will begin in 30 seconds!'),
-(20083, 'The battle has begun!'),
-(20084, 'Alliance Keep'),
-(20085, 'Horde Keep'),
-(20086, 'The Alliance wins!'),
-(20087, 'The Horde wins!'),
-(20088, 'The west gate of the Alliance has been destroyed!'),
-(20089, 'The east gate of the Alliance has been destroyed!'),
-(20090, 'The front gate of the Alliance has been destroyed!'),
-(20091, 'The west gate of the Horde has been destroyed!'),
-(20092, 'The east gate of the Horde has been destroyed!'),
-(20093, 'The front gate of Horde has been destroyed!'),
-(20094, '$n has assaulted the %s'),
-(20095, '$n has defended the %s'),
-(20096, '$n claims the %s! If left unchallenged, the %s will control it in 1 minute!'),
-(20097, 'The %s has taken the %s'),
-(20098, 'Workshop'),
-(20099, 'Docks'),
-(20100, 'Refinery'),
-(20101, 'Quarry'),
-(20102, 'Hangar');
+DELETE FROM mangos_string WHERE entry BETWEEN 20079 AND 20103;
+INSERT INTO mangos_string (entry, content_default, content_loc6, content_loc7, content_loc8) VALUES
+(20080, 'The battle will begin in 2 minutes.', 'La batalla por la Isla de la Conquista comenzará en 2 minutos.', 'La batalla por la Isla de la Conquista comenzará en 2 minutos.', 'Бой на Острове Завоеваний начнется через 2 минуты!'),
+(20081, 'The battle will begin in 1 minute.', 'La batalla por la Isla de la Conquista comenzará en 1 minuto.', 'La batalla por la Isla de la Conquista comenzará en 1 minuto.', 'Бой на Острове Завоеваний начнется уже через 1 минуту! Начинайте готовиться!'),
+(20082, 'The battle will begin in 30 seconds!', 'La batalla por la Isla de la Conquista comenzará en 30 segundos. ¡Preparaos!', 'La batalla por la Isla de la Conquista comenzará en 30 segundos. ¡Preparaos!', 'Бой на Острове Завоеваний начнется через 30 секунд! Будьте готовы!'),
+(20083, 'The battle has begun!', '¡La batalla por la Isla de la Conquista ha comenzado!', '¡La batalla por la Isla de la Conquista ha comenzado!', 'Бой начался!'),
+(20084, 'Alliance Keep', 'Fortaleza de la Alianza', 'Fortaleza de la Alianza', 'крепость Альянса'),
+(20085, 'Horde Keep', 'Fortaleza de la Horda', 'Fortaleza de la Horda', 'крепость Орды'),
+(20086, 'The Alliance wins!', '¡Gana la Alianza!', '¡Gana la Alianza!', 'Альянс побеждает!'),
+(20087, 'The Horde wins!', '¡Gana la Horda!', '¡Gana la Horda!', 'Орда побеждает!'),
+(20088, 'The west gate of the Alliance has been destroyed!', '¡La puerta oeste de la fortaleza de la Alianza ha sido destruida!', '¡La puerta oeste de la fortaleza de la Alianza ha sido destruida!', 'Восточные врата Альянса разрушены!'),
+(20089, 'The east gate of the Alliance has been destroyed!', '¡La puerta este de la fortaleza de la Alianza ha sido destruida!', '¡La puerta este de la fortaleza de la Alianza ha sido destruida!', 'Западные врата Альянса разрушены!'),
+(20090, 'The front gate of the Alliance has been destroyed!', '¡La puerta central de la fortaleza de la Alianza ha sido destruida!', '¡La puerta central de la fortaleza de la Alianza ha sido destruida!', 'Южные врата Альянса разрушены!'),
+(20091, 'The west gate of the Horde has been destroyed!', '¡La puerta oeste de la fortaleza de la Horda ha sido destruida!', '¡La puerta oeste de la fortaleza de la Horda ha sido destruida!', 'Восточные врата Орды разрушены!'),
+(20092, 'The east gate of the Horde has been destroyed!', '¡La puerta este de la fortaleza de la Horda ha sido destruida!', '¡La puerta este de la fortaleza de la Horda ha sido destruida!', 'Западные врата Орды разрушены!'),
+(20093, 'The front gate of Horde has been destroyed!', '¡La puerta central de la fortaleza de la Horda ha sido destruida!', '¡La puerta central de la fortaleza de la Horda ha sido destruida!', 'Южные врата Орды разрушены!'),
+(20094, '$n has assaulted the %s', '¡$n ha asaltado %s!', '¡$n ha asaltado %s!', '$n захватывает %s'),
+(20095, '$n has defended the %s', '¡$n ha defendido %s!', '¡$n ha defendido %s!', '$n отбивает и возвращает под свой контроль %s'),
+(20096, '$n claims the %s! If left unchallenged, the %s will control it in 1 minute!', '¡$n reclama %s! ¡Si nadie se lo impide, la %s tomará el control en 1 minuto!' , '¡$n reclama %s! ¡Si nadie se lo impide, la %s tomará el control en 1 minuto!', '$n захватывает %s! Если ничего не предпринимать, %s получит контроль уже через 1 минуту!'),
+(20097, 'The %s has taken the %s', 'La %s ha tomado %s.', 'La %s ha tomado %s.', '%s захватывает %s'),
+(20098, 'Workshop', 'el Taller', 'el Taller', 'Мастерская'),
+(20099, 'Docks', 'los Muelles', 'los Muelles', 'Причал'),
+(20100, 'Refinery', 'la Refinería', 'la Refinería', 'Нефтезавод'),
+(20101, 'Quarry', 'la Cantera', 'la Cantera', 'Каменоломня'),
+(20102, 'Hangar', 'el Hangar', 'el Hangar', 'Ангар');
 
 -- Alliance Gunship Cannon
 UPDATE creature_template SET vehicle_id = 452, iconName = 'vehichleCursor', faction_A = 3, faction_H = 3, ScriptName = 'npc_battleground_vehicle' WHERE entry = 34929;
@@ -38,14 +38,14 @@ UPDATE creature_template SET vehicle_id = 453, iconName = 'vehichleCursor', fact
 UPDATE creature_template SET vehicle_id = 160, iconName = 'vehichleCursor', faction_A = 35, faction_H = 35, unit_flags = unit_flags | 4, ScriptName = 'npc_ic_cannon' WHERE entry = 34944;
 UPDATE creature_template SET unit_flags = unit_flags | 4 WHERE entry = 34944;
 -- Catapult
-UPDATE creature_template SET vehicle_id = 438, iconName = 'vehichleCursor', faction_A = 35, faction_H = 35, speed_walk = 2.4, speed_run = 2.8, ScriptName = 'npc_ic_vehicle' WHERE entry = 34793;
+UPDATE creature_template SET powertype = 3, vehicle_id = 438, iconName = 'vehichleCursor', faction_A = 35, faction_H = 35, speed_walk = 2.4, speed_run = 2.8, ScriptName = 'npc_ic_vehicle' WHERE entry = 34793;
 UPDATE creature_template SET speed_walk = 2.4, speed_run = 2.8 WHERE entry = 35413;
 -- Demolisher
 UPDATE creature_template SET vehicle_id = 509, iconName = 'vehichleCursor', faction_A = 35, faction_H = 35, ScriptName = 'npc_ic_vehicle' WHERE entry = 34775;
 -- Alli Siege Engine
-UPDATE creature_template SET vehicle_id = 447, iconName = 'vehichleCursor', faction_A = 3, faction_H = 3 WHERE entry = 34776;
+UPDATE creature_template SET powertype = 3, vehicle_id = 447, iconName = 'vehichleCursor', faction_A = 3, faction_H = 3 WHERE entry = 34776;
 -- Horde Siege Engine
-UPDATE creature_template SET vehicle_id = 436, iconName = 'vehichleCursor', faction_A = 6, faction_H = 6 WHERE entry = 35069;
+UPDATE creature_template SET powertype = 3, vehicle_id = 436, iconName = 'vehichleCursor', faction_A = 6, faction_H = 6 WHERE entry = 35069;
 -- Alli Glaive Thrower
 UPDATE creature_template SET vehicle_id = 447, iconName = 'vehichleCursor', faction_A = 3, faction_H = 3, ScriptName = 'npc_ic_vehicle' WHERE entry = 34802;
 -- Horde Glaive Thrower
