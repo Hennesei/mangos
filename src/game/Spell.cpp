@@ -1956,7 +1956,7 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                 // caster included here?
                 FillAreaTargets(targetUnitMap, radius, PUSH_DEST_CENTER, SPELL_TARGETS_ALL);
 
-                if (targetUnitMap.empty());
+                if (targetUnitMap.empty())
                     targetUnitMap.push_back(m_caster);
             }
             else if (IsPositiveSpell(m_spellInfo->Id))
@@ -8458,6 +8458,25 @@ bool Spell::FillCustomTargetMap(SpellEffectIndex i, UnitList &targetUnitMap)
                     if (*itr && (*itr)->isInFrontInMap(m_caster, DEFAULT_VISIBILITY_DISTANCE) && (*itr)->IsWithinLOSInMap(m_caster))
                         targetUnitMap.push_back(*itr);
                 }
+            }
+            break;
+        }
+        case 70728: // Exploit Weakness triggered
+        case 70840: // Devious Minds triggered
+        {
+            targetUnitMap.push_back(m_caster);
+            if (m_caster->GetObjectGuid().IsPet())
+            {
+                if (Unit* owner = m_caster->GetOwner())
+                    targetUnitMap.push_back(owner);
+            }
+            else
+            {
+               GroupPetList const& groupPets = m_caster->GetPets();
+               if (!groupPets.empty())
+                   for (GroupPetList::const_iterator itr = groupPets.begin(); itr != groupPets.end(); ++itr)
+                       if (Pet* pet = m_caster->GetMap()->GetPet(*itr))
+                           targetUnitMap.push_back((Unit*)pet);
             }
             break;
         }

@@ -9986,9 +9986,6 @@ m_permanent(false), m_isRemovedOnShapeLost(true), m_deleted(false), m_in_use(0)
             m_stackAmount = m_spellProto->StackAmount;
             break;
     }
-
-    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-        RemoveAura(SpellEffectIndex(i));
 }
 
 void SpellAuraHolder::AddAura(Aura aura, SpellEffectIndex index)
@@ -10088,13 +10085,7 @@ void SpellAuraHolder::_AddSpellAuraHolder()
         }
     }
 
-    uint8 flags = 0;
-    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-    {
-        if (GetAuraByEffectIndex(SpellEffectIndex(i)))
-            flags |= (1 << i);
-    }
-    flags |= ((GetCasterGuid() == GetTarget()->GetObjectGuid()) ? AFLAG_NOT_CASTER : AFLAG_NONE) | ((GetSpellMaxDuration(m_spellProto) > 0 && !(m_spellProto->AttributesEx5 & SPELL_ATTR_EX5_NO_DURATION)) ? AFLAG_DURATION : AFLAG_NONE) | (IsPositive() ? AFLAG_POSITIVE : AFLAG_NEGATIVE);
+    uint8 flags = GetAuraFlags() | ((GetCasterGuid() == GetTarget()->GetObjectGuid()) ? AFLAG_NOT_CASTER : AFLAG_NONE) | ((GetSpellMaxDuration(m_spellProto) > 0 && !(m_spellProto->AttributesEx5 & SPELL_ATTR_EX5_NO_DURATION)) ? AFLAG_DURATION : AFLAG_NONE) | (IsPositive() ? AFLAG_POSITIVE : AFLAG_NEGATIVE);
     SetAuraFlags(flags);
 
     SetAuraLevel(caster ? caster->getLevel() : sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL));
@@ -10340,6 +10331,9 @@ bool SpellAuraHolder::ModStackAmount(int32 num)
     // Can`t mod
     if (!protoStackAmount)
         return true;
+
+    if (num != 0)
+        HandleSpellSpecificBoostsForward(num > 0);
 
     // Modify stack but limit it
     int32 stackAmount = m_stackAmount + num;
@@ -10730,10 +10724,16 @@ void SpellAuraHolder::HandleSpellSpecificBoosts(bool apply)
             }
             else if (!apply && m_spellProto->SpellFamilyFlags.test<CF_MAGE_ARCANE_MISSILES_CHANNEL>())
             {
-                // Remove missile barrage
                 if (Unit * caster = GetCaster())
+                {
+                    // Remove missile barrage
                     if (caster->HasAura(44401))
                         caster->RemoveAurasByCasterSpell(44401, caster->GetObjectGuid());
+
+                    // Remove Arcane Blast
+                    if (caster->HasAura(36032))
+                        caster->RemoveAurasByCasterSpell(36032, caster->GetObjectGuid());
+                }
             }
 
             switch(GetId())
@@ -10960,6 +10960,16 @@ void SpellAuraHolder::HandleSpellSpecificBoosts(bool apply)
                     int32 heal = aura->GetModifier()->m_amount;
                     caster->CastCustomSpell(m_target, 64801, &heal, NULL, NULL, true, NULL);
                 }
+            }
+            // Rip
+            else if (GetSpellProto()->SpellFamilyFlags.test<CF_DRUID_RIP>())
+            {
+                Unit* caster = GetCaster();
+                if (!caster)
+                    return;
+
+                if (caster->HasAura(63974))                 // Glyph of Shred triggered
+                    caster->RemoveAurasDueToSpell(63974);
             }
             // Barkskin
             else if (GetId()==22812 && m_target->HasAura(63057)) // Glyph of Barkskin
@@ -11468,6 +11478,30 @@ void SpellAuraHolder::HandleSpellSpecificBoostsForward(bool apply)
                 return;
             break;
         }
+        case SPELLFAMILY_HUNTER:
+        {
+            // Cobra strike
+            if (m_spellProto->Id == 53257)
+            {
+                if (m_target->GetObjectGuid().IsPet())
+                {
+                    if (!apply)
+                        if (Unit* owner = ((Pet*)m_target)->GetOwner())
+                            if (SpellAuraHolderPtr holder = owner->GetSpellAuraHolder(m_spellProto->Id))
+                                if (holder->ModStackAmount(-1))
+                                    owner->RemoveSpellAuraHolder(holder);
+                }
+                else if (apply)
+                {
+                    if (Pet* pet = m_target->GetPet())
+                        if (pet->isAlive())
+                            pet->CastSpell(pet,m_spellProto->Id,true);
+                }
+                return;
+            }
+            else
+            break;
+        }
         default:
             return;
     }
@@ -11642,6 +11676,12 @@ bool SpellAuraHolder::IsAreaAura() const
 
 bool SpellAuraHolder::IsPositive() const
 {
+    if (GetAuraFlags() & AFLAG_POSITIVE)
+        return true;
+    else if (GetAuraFlags() & AFLAG_NEGATIVE)
+        return false;
+
+    // check, if no aura flags defined
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
         if (Aura const* aur = GetAura(SpellEffectIndex(i)))
             if (!aur->IsPositive())
