@@ -258,7 +258,7 @@ BattleGround::BattleGround()
     m_Status            = STATUS_NONE;
     m_ClientInstanceID  = 0;
     m_EndTime           = 0;
-    m_BracketId         = BG_BRACKET_ID_FIRST;
+    m_BracketId         = BG_BRACKET_ID_TEMPLATE;
     m_InvitedAlliance   = 0;
     m_InvitedHorde      = 0;
     m_ArenaType         = ARENA_TYPE_NONE;
@@ -335,7 +335,11 @@ BattleGround::~BattleGround()
         DelObject(i);
 
     sBattleGroundMgr.RemoveBattleGround(GetInstanceID(), GetTypeID());
-    sBattleGroundMgr.DeleteClientVisibleInstanceId(GetTypeID(), GetBracketId(), GetClientInstanceID());
+
+    // skip template bgs as they were never added to visible bg list
+    BattleGroundBracketId bracketId = GetBracketId();
+    if (bracketId != BG_BRACKET_ID_TEMPLATE)
+        sBattleGroundMgr.DeleteClientVisibleInstanceId(GetTypeID(), bracketId, GetClientInstanceID());
 
     // unload map
     // map can be null at bg destruction
@@ -1244,7 +1248,6 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
             if (!team) team = plr->GetTeam();
 
             plr->RemoveArenaAuras(true);                // removes debuffs / dots etc., we don't want the player to die after porting out
-
             // if arena, remove the specific arena auras
             if (isArena())
             {
@@ -1415,7 +1418,6 @@ void BattleGround::AddPlayer(Player *plr)
     {
         plr->RemoveArenaSpellCooldowns();
         plr->RemoveArenaAuras();
-        plr->RemoveAllEnchantments(TEMP_ENCHANTMENT_SLOT);
         if (team == ALLIANCE)                               // gold
         {
             if (plr->GetTeam() == HORDE)
@@ -1816,10 +1818,17 @@ void BattleGround::SpawnBGObject(ObjectGuid guid, uint32 respawntime)
         //we need to change state from GO_JUST_DEACTIVATED to GO_READY in case battleground is starting again
         if (obj->getLootState() == GO_JUST_DEACTIVATED)
             obj->SetLootState(GO_READY);
-        obj->SetRespawnTime(0);
+        obj->Respawn();
         map->Add(obj);
         if (obj->GetGOInfo()->type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING)
             obj->Rebuild(NULL);
+
+        GameObjectData const *data = sObjectMgr.GetGOData(obj->GetGUIDLow());
+        if (data)
+        {
+            uint32 respawn = data->spawntimesecs;
+            obj->SetRespawnDelay(respawn);
+        }
     }
     else
     {
@@ -1842,11 +1851,22 @@ void BattleGround::SpawnBGCreature(ObjectGuid guid, uint32 respawntime)
     {
         obj->Respawn();
         map->Add(obj);
+        CreatureData const *data = sObjectMgr.GetCreatureData(obj->GetGUIDLow());
+        if (data)
+        {
+            uint32 respawn = data->spawntimesecs;
+            obj->SetRespawnDelay(respawn);
+        }
     }
     else
     {
         map->Add(obj);
         obj->SetRespawnDelay(respawntime);
+        if (obj->GetObjectGuid().IsVehicle())
+        {
+            if (obj->GetVehicleKit())
+                obj->GetVehicleKit()->RemoveAllPassengers();
+        }
         obj->SetDeathState(JUST_DIED);
         obj->RemoveCorpse();
 

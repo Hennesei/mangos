@@ -833,7 +833,18 @@ void PlayerbotMgr::OnBotLogin(Player * const bot)
     const ObjectGuid masterGuid = m_master->GetObjectGuid();
     if (m_master->GetGroup() &&
         !m_master->GetGroup()->IsLeader(masterGuid))
-        m_master->GetGroup()->ChangeLeader(masterGuid);
+        {
+                // But only do so if one of the master's bots is leader
+                for (PlayerBotMap::const_iterator itr = GetPlayerBotsBegin(); itr != GetPlayerBotsEnd(); itr++)
+                {
+                        Player* bot = itr->second;
+                        if ( m_master->GetGroup()->IsLeader(bot->GetObjectGuid()) )
+                        {
+                                m_master->GetGroup()->ChangeLeader(masterGuid);
+                                break;
+                        }
+                }
+        }
 }
 
 void PlayerbotMgr::RemoveAllBotsFromGroup()
@@ -1072,13 +1083,20 @@ bool ChatHandler::HandlePlayerbotCommand(char* args)
         }
     }
 
-    QueryResult *resultlvl = CharacterDatabase.PQuery("SELECT level,name FROM characters WHERE guid = '%u'", guid.GetCounter());
+    QueryResult *resultlvl = CharacterDatabase.PQuery("SELECT level, name, race FROM characters WHERE guid = '%u'", guid.GetCounter());
     if (resultlvl)
     {
         Field *fields = resultlvl->Fetch();
         int charlvl = fields[0].GetUInt32();
+        uint32 race = fields[2].GetUInt32();
+        Team master_team = m_session->GetPlayer()->GetTeam();
+        Team bot_team = HORDE;
+        if (RACEMASK_ALLIANCE & (1 << (race-1)))
+            bot_team = ALLIANCE;
         int maxlvl = sWorld.getConfig(CONFIG_UINT32_PLAYERBOT_RESTRICTLEVEL);
+        int minlvl = sWorld.getConfig(CONFIG_UINT32_PLAYERBOT_MINBOTLEVEL);
         if (!(m_session->GetSecurity() > SEC_PLAYER))
+        {
             if (charlvl > maxlvl)
             {
                 PSendSysMessage("|cffff0000You cannot summon |cffffffff[%s]|cffff0000, it's level is too high.(Current Max:lvl |cffffffff%u)", fields[1].GetString(), maxlvl);
@@ -1086,6 +1104,21 @@ bool ChatHandler::HandlePlayerbotCommand(char* args)
                 delete resultlvl;
                 return false;
             }
+            if (charlvl < minlvl)
+            {
+                PSendSysMessage("|cffff0000You cannot summon |cffffffff[%s]|cffff0000, it's level is too low.(Current Min:lvl |cffffffff%u)", fields[1].GetString(), minlvl);
+                SetSentErrorMessage(true);
+                delete resultlvl;
+                return false;
+            }
+            if (!sWorld.getConfig(CONFIG_BOOL_PLAYERBOT_ALLOW_SUMMON_OPPOSITE_FACTION) && bot_team != master_team)
+            {
+                PSendSysMessage("|cffff0000You cannot summon |cffffffff[%s]|cffff0000, it is from opposite faction.", fields[1].GetString());
+                SetSentErrorMessage(true);
+                delete resultlvl;
+                return false;
+            }
+        }
         delete resultlvl;
     }
     // end of gmconfig patch
