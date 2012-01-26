@@ -28,7 +28,7 @@
 PathFinder::PathFinder(const Unit* owner) :
     m_polyLength(0), m_type(PATHFIND_BLANK),
     m_useStraightPath(false), m_forceDestination(false), m_pointPathLimit(MAX_POINT_PATH_LENGTH),
-    m_sourceUnit(owner), m_navMesh(NULL), m_navMeshQuery(NULL)
+    m_sourceUnit(owner), m_navMesh(NULL),m_navMeshLock(NULL), m_navMeshQuery(NULL)
 {
     DEBUG_FILTER_LOG(LOG_FILTER_PATHFINDING, "++ PathFinder::PathInfo for %u \n", m_sourceUnit->GetGUIDLow());
 
@@ -37,6 +37,7 @@ PathFinder::PathFinder(const Unit* owner) :
     {
         MMAP::MMapManager* mmap = MMAP::MMapFactory::createOrGetMMapManager();
         m_navMesh = mmap->GetNavMesh(mapId);
+        m_navMeshLock = mmap->GetNavMeshLock(mapId);
         m_navMeshQuery = mmap->GetNavMeshQuery(mapId, m_sourceUnit->GetInstanceId());
     }
 
@@ -90,7 +91,9 @@ bool PathFinder::calculate(float destX, float destY, float destZ, bool forceDest
     else
     {
         // target moved, so we need to update the poly path
+        m_navMeshLock->acquire_read();
         BuildPolyPath(start, dest);
+        m_navMeshLock->release();
         return true;
     }
 }

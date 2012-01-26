@@ -19,6 +19,8 @@
 #ifndef MANGOS_PATH_FINDER_H
 #define MANGOS_PATH_FINDER_H
 
+#include <ace/RW_Mutex.h>
+
 #include "MoveMapSharedDefines.h"
 #include "../recastnavigation/Detour/Include/DetourNavMesh.h"
 #include "../recastnavigation/Detour/Include/DetourNavMeshQuery.h"
@@ -92,6 +94,7 @@ class PathFinder
 
         const Unit* const       m_sourceUnit;       // the unit that is moving
         const dtNavMesh*        m_navMesh;          // the nav mesh
+        ACE_RW_Mutex*           m_navMeshLock;
         const dtNavMeshQuery*   m_navMeshQuery;     // the nav mesh query used to find the path
 
         dtQueryFilter m_filter;                     // use single filter for all movements, update it when needed
