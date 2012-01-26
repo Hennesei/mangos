@@ -38,6 +38,7 @@
 #include "Creature.h"
 #include "Formulas.h"
 #include "BattleGround.h"
+#include "WorldPvP/WorldPvPMgr.h"
 #include "CreatureAI.h"
 #include "ScriptMgr.h"
 #include "Util.h"
@@ -1873,16 +1874,14 @@ void Aura::TriggerSpell()
 //                    case 58040: break;
 //                    // Draw Magic
 //                    case 58185: break;
-//                    // Food
-                    case 58886:
+                    case 58886:                             // Food
                     {
-                        if (!m_modifier.m_amount)
+                        if (GetAuraTicks() != 1)
                             return;
 
                         uint32 randomBuff[5] = {57288, 57139, 57111, 57286, 57291};
 
-                        trigger_spell_id = urand(0,1) ? 58891 : randomBuff[urand(0,4)];
-                        m_modifier.m_amount = 0;
+                        trigger_spell_id = urand(0, 1) ? 58891 : randomBuff[urand(0, 4)];
 
                         break;
                     }
@@ -1904,8 +1903,7 @@ void Aura::TriggerSpell()
 //                    case 62571: break;
 //                    // Mulgore Hatchling
 //                    case 62586: break;
-                    // Durotar Scorpion
-                    case 62679:
+                    case 62679:                             // Durotar Scorpion
                         trigger_spell_id = auraSpellInfo->CalculateSimpleValue(m_effIndex);
                         break;
 //                    // Fighting Fish
@@ -5815,8 +5813,12 @@ void Aura::HandleAuraModEffectImmunity(bool apply, bool /*Real*/)
     {
         if ( BattleGround *bg = ((Player*)target)->GetBattleGround() )
             bg->EventPlayerDroppedFlag(((Player*)target));
-        else if (InstanceData* mapInstance = ((Player*)target)->GetInstanceData())
-            mapInstance->OnPlayerDroppedFlag((Player*)target, GetSpellProto()->Id);
+        else
+        {
+            sWorldPvPMgr.HandleDropFlag((Player*)target, GetSpellProto()->Id);
+            if (InstanceData* mapInstance = ((Player*)target)->GetInstanceData())
+                mapInstance->OnPlayerDroppedFlag((Player*)target, GetSpellProto()->Id);
+        }
     }
 
     target->ApplySpellImmune(GetId(), IMMUNITY_EFFECT, m_modifier.m_miscvalue, apply);
