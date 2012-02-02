@@ -6415,7 +6415,7 @@ void Player::CheckAreaExploreAndOutdoor()
     if (!isAlive())
         return;
 
-    if (IsTaxiFlying())
+    if (IsTaxiFlying() || !GetMap())
         return;
 
     bool isOutdoor;
