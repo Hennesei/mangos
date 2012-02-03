@@ -20,7 +20,6 @@
 #define _MOVE_MAP_H
 
 #include "Utilities/UnorderedMapSet.h"
-#include <ace/RW_Mutex.h>
 
 #include "../../dep/recastnavigation/Detour/Include/DetourAlloc.h"
 #include "../../dep/recastnavigation/Detour/Include/DetourNavMesh.h"
@@ -57,7 +56,6 @@ namespace MMAP
         }
 
         dtNavMesh* navMesh;
-        ACE_RW_Mutex navMeshLock;
 
         // we have to use single dtNavMeshQuery for every instance, since those are not thread safe
         NavMeshQuerySet navMeshQueries;     // instanceId to query
@@ -83,7 +81,6 @@ namespace MMAP
             // the returned [dtNavMeshQuery const*] is NOT threadsafe
             dtNavMeshQuery const* GetNavMeshQuery(uint32 mapId, uint32 instanceId);
             dtNavMesh const* GetNavMesh(uint32 mapId);
-            ACE_RW_Mutex* GetNavMeshLock(uint32 mapId);
 
             uint32 getLoadedTilesCount() const { return loadedTiles; }
             uint32 getLoadedMapsCount() const { return loadedMMaps.size(); }
